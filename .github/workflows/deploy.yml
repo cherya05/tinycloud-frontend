@@ -1,0 +1,50 @@
+name: Deploy TinyCloud Frontend
+on:
+    workflow_run:
+        workflows: "Tinycloud Frontend Pipeline"
+        types: [completed]
+env:
+    AWS_REGION: eu-north-1
+    FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+jobs:
+    deploy:
+        runs-on: ubuntu-latest
+        if: ${{ github.event.workflow_run.conclusion == 'success' }}
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Configure AWS credentials
+              uses: aws-actions/configure-aws-credentials@v5
+              with:
+                aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+                aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+                aws-region: ${{ env.AWS_REGION }}
+
+            - name: Login to Amazon ECR
+              id: login-ecr
+              uses: aws-actions/amazon-ecr-login@v2
+
+            - name: Setup Kubeconfig
+              run: |
+                echo "${{ secrets.KUBECONFIG }}" > kubeconfig.yaml
+                echo "KUBECONFIG=$(pwd)/kubeconfig.yaml" >> $GITHUB_ENV
+
+            - name: ECR Secret for Kubernetes
+              run: |
+                kubectl create secret docker-registry ecr-registry-secret \
+                  --docker-server=${{ steps.login-ecr.outputs.registry }} \
+                  --docker-username=AWS \
+                  --docker-password=$(aws ecr get-login-password --region ${{ env.AWS_REGION }}) \
+                  -n tinycloud-dev \
+                  --dry-run=client -o yaml | kubectl apply -f -
+            
+            - name: Deploy to Civo
+              run: |
+                helm upgrade --install tinycloud-frontend-dev \
+                  oci://${{ steps.login-ecr.outputs.registry }}/tinycloud-frontend \
+                  --set image.tag=${{ github.event.workflow_run.head_sha }} \
+                  -f charts/tinycloud-frontend/values-dev.yaml \
+                  -n tinycloud-dev \
+                  --create-namespace
+            
