@@ -1,9 +1,12 @@
 replicaCount: 1
 
 image:
-  repository: cheryyaaaaaaa/tinycloud-frontend
+  repository: 242902229138.dkr.ecr.eu-north-1.amazonaws.com/tinycloud-frontend
   pullPolicy: Always
   tag: "latest"
+
+imagePullSecrets:
+  - name: ecr-registry-secret
 
 resources:
   limits:

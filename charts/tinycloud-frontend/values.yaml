@@ -5,6 +5,8 @@ image:
   pullPolicy: IfNotPresent
   tag: "latest"
 
+imagePullSecrets: []
+
 nameOverride: ""
 fullnameOverride: ""
 

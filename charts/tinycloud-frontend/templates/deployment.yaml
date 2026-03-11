@@ -18,6 +18,12 @@ spec:
       labels:
         {{- include "tinycloud-frontend.labels" . | nindent 8 }}
     spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
       containers:
         - name: {{ .Chart.Name }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
@@ -28,7 +34,7 @@ spec:
               protocol: TCP
           env:
             - name: BACKEND_HOST
-              value: {{ .Values.env.BACKEND_HOST }}
+              value: {{ .Values.env.BACKEND_HOST | quote }}
             - name: BACKEND_PORT
               value: {{ .Values.env.BACKEND_PORT | quote }}
           livenessProbe:
