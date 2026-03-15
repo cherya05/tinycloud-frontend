@@ -3,7 +3,6 @@ replicaCount: 1
 image:
   repository: 242902229138.dkr.ecr.eu-north-1.amazonaws.com/tinycloud-docker-frontend
   pullPolicy: Always
-  tag: "latest"
 
 imagePullSecrets:
   - name: ecr-registry-secret
