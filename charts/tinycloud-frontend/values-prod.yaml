@@ -1,7 +1,7 @@
 replicaCount: 1
 
 image:
-  repository: 242902229138.dkr.ecr.eu-north-1.amazonaws.com/tinycloud-frontend
+  repository: 242902229138.dkr.ecr.eu-north-1.amazonaws.com/tinycloud-docker-frontend
   pullPolicy: Always
   tag: "latest"
 
