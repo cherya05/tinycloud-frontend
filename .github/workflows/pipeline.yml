@@ -25,6 +25,7 @@ jobs:
               uses: gandarez/semver-action@master
               with:
                 bump: patch
+                branching_model: trunk-based
                 main_branch_name: main
 
             - name: Configure AWS credentials
