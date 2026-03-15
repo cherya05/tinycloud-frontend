@@ -30,8 +30,8 @@ jobs:
             - name: Build and Push Docker image
               run: |
                 docker build --no-cache -t tinycloud-frontend:latest .
-                docker tag tinycloud-frontend:latest ${{ steps.login-ecr.outputs.registry }}/tinycloud-frontend:${{ github.sha }}
-                docker push ${{ steps.login-ecr.outputs.registry }}/tinycloud-frontend:${{ github.sha }}
+                docker tag tinycloud-frontend:latest ${{ steps.login-ecr.outputs.registry }}/tinycloud-docker-frontend:${GITHUB_SHA::7}
+                docker push ${{ steps.login-ecr.outputs.registry }}/tinycloud-docker-frontend:${GITHUB_SHA::7}
 
             - name: Build and Push Helm chart
               run: |
@@ -75,7 +75,7 @@ jobs:
                 helm upgrade --install tinycloud-frontend-dev \
                   oci://${{ steps.login-ecr.outputs.registry }}/tinycloud-frontend \
                   --version 0.1.0 \
-                  --set image.tag=${{ github.sha }} \
+                  --set image.tag=${GITHUB_SHA::7} \
                   -f charts/tinycloud-frontend/values-dev.yaml \
                   -n tinycloud-dev \
                   --create-namespace
