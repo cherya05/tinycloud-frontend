@@ -12,8 +12,10 @@ concurrency:
 jobs:
     build:
         runs-on: ubuntu-latest
+        permissions:
+          contents: write
         outputs:
-          version: ${{ steps.semver.outputs.semver_tag }}
+          version: ${{ steps.semver.outputs.new_tag }}
         steps:
             - name: Checkout code
               uses: actions/checkout@v4
@@ -22,11 +24,10 @@ jobs:
 
             - name: Sermver action
               id: semver
-              uses: gandarez/semver-action@master
-              with:
-                bump: patch
-                branching_model: trunk-based
-                main_branch_name: main
+              uses: anothrNick/github-tag-action@v1
+              env:
+                GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                DEFAULT_BUMP: patch
 
             - name: Configure AWS credentials
               uses: aws-actions/configure-aws-credentials@v5
@@ -42,12 +43,12 @@ jobs:
             - name: Build and Push Docker image
               run: |
                 docker build --no-cache -t tinycloud-frontend:latest .
-                docker tag tinycloud-frontend:latest ${{ steps.login-ecr.outputs.registry }}/tinycloud-docker-frontend:${{ steps.semver.outputs.semver_tag }}
-                docker push ${{ steps.login-ecr.outputs.registry }}/tinycloud-docker-frontend:${{ steps.semver.outputs.semver_tag }}
+                docker tag tinycloud-frontend:latest ${{ steps.login-ecr.outputs.registry }}/tinycloud-docker-frontend:${{ steps.semver.outputs.new_tag }}
+                docker push ${{ steps.login-ecr.outputs.registry }}/tinycloud-docker-frontend:${{ steps.semver.outputs.new_tag }}
 
             - name: Build and Push Helm chart
               run: |
-                helm package charts/tinycloud-frontend --version ${{ steps.semver.outputs.semver_tag }}
+                helm package charts/tinycloud-frontend --version ${{ steps.semver.outputs.new_tag }}
                 helm push tinycloud-frontend-*.tgz oci://${{ steps.login-ecr.outputs.registry }}
 
     deploy:
