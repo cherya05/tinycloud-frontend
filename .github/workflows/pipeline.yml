@@ -58,5 +58,8 @@ jobs:
                   -f environment=dev \
                   -f service=frontend \
                   -f version=${{ steps.semver.outputs.new_tag }}
+                sleep 5
+                RUN_ID=$(gh run list --repo cherya05/tinycloud-infra --workflow=pipeline.yaml --limit 1 --json databaseId --jq '.[0].databaseId')
+                gh run watch $RUN_ID --repo cherya05/tinycloud-infra --exit-status
               env:
                 GH_TOKEN: ${{ secrets.GH_TOKEN }}
