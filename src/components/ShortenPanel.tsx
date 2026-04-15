@@ -45,10 +45,21 @@ export default function ShortenPanel({ onLinkCreated }: Props) {
 
   function copyResult() {
     if (!result) return
-    navigator.clipboard.writeText(result).then(() => {
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(result).then(() => {
+        setCopied(true)
+        setTimeout(() => setCopied(false), 1800)
+      })
+    } else {
+      const el = document.createElement('textarea')
+      el.value = result
+      document.body.appendChild(el)
+      el.select()
+      document.execCommand('copy')
+      document.body.removeChild(el)
       setCopied(true)
       setTimeout(() => setCopied(false), 1800)
-    })
+    }
   }
 
   return (

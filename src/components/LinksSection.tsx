@@ -26,7 +26,16 @@ export default function LinksSection({ refreshKey, onEditClick }: Props) {
   const { links, loading, error, reload, deleteLink } = useLinks(refreshKey)
 
   function qCopy(url: string) {
-    navigator.clipboard.writeText(url)
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(url)
+    } else {
+      const el = document.createElement('textarea')
+      el.value = url
+      document.body.appendChild(el)
+      el.select()
+      document.execCommand('copy')
+      document.body.removeChild(el)
+    }
   }
 
   const count = links.length

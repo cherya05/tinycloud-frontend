@@ -1,0 +1,65 @@
+name: Tinycloud Frontend Pipeline
+on:
+    push:
+        branches:
+            - main
+env:
+    AWS_REGION: eu-north-1
+    FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+concurrency:
+    group: tinycloud-frontend-pipeline
+    cancel-in-progress: true
+jobs:
+    build:
+        runs-on: ubuntu-latest
+        permissions:
+          contents: write
+        outputs:
+          version: ${{ steps.semver.outputs.new_tag }}
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+              with:
+                fetch-depth: 0
+
+            - name: Semver action
+              id: semver
+              uses: anothrNick/github-tag-action@v1
+              env:
+                GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                DEFAULT_BUMP: patch
+
+            - name: Configure AWS credentials
+              uses: aws-actions/configure-aws-credentials@v5
+              with:
+                aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+                aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+                aws-region: ${{ env.AWS_REGION }}
+
+            - name: Login to Amazon ECR
+              id: login-ecr
+              uses: aws-actions/amazon-ecr-login@v2
+
+            - name: Build and Push Docker image
+              run: |
+                docker build --no-cache -t tinycloud-frontend:latest .
+                docker tag tinycloud-frontend:latest ${{ steps.login-ecr.outputs.registry }}/tinycloud-docker-frontend:${{ steps.semver.outputs.new_tag }}
+                docker push ${{ steps.login-ecr.outputs.registry }}/tinycloud-docker-frontend:${{ steps.semver.outputs.new_tag }}
+
+            - name: Build and Push Helm chart
+              run: |
+                helm package charts/tinycloud-frontend --version ${{ steps.semver.outputs.new_tag }}
+                helm push tinycloud-frontend-*.tgz oci://${{ steps.login-ecr.outputs.registry }}
+
+            - name: Deploy dev
+              run: |
+                gh workflow run pipeline.yaml \
+                  --repo cherya05/tinycloud-infra \
+                  -f environment=dev \
+                  -f service=frontend \
+                  -f version=${{ steps.semver.outputs.new_tag }}
+                sleep 5
+                RUN_ID=$(gh run list --repo cherya05/tinycloud-infra --workflow=pipeline.yaml --limit 1 --json databaseId --jq '.[0].databaseId')
+                gh run watch $RUN_ID --repo cherya05/tinycloud-infra --exit-status
+              env:
+                GH_TOKEN: ${{ secrets.GH_TOKEN }}
